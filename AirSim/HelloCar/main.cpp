@@ -13,12 +13,47 @@ STRICT_MODE_ON
 #include "common/common_utils/FileSystem.hpp"
 #include <iostream>
 #include <chrono>
+#include <fstream>
+#include <math.h>
+
+std::ofstream Valores("Valores.txt");
 
 using namespace msr::airlib;
+
+bool ChegouNoFinal(const msr::airlib::Pose &pose)
+{
+	if (pose.position[0] > -5 && pose.position[0] < 5) {
+		if (pose.position[1] >= 2) {
+			return true;
+		}
+	}
+	return false;
+
+}
+bool deveSalvarPonto(const msr::airlib::Pose &poseInitial, const msr::airlib::Pose &poseFinal,  float intervalo)
+{
+
+	float finalXposition = poseFinal.position[0];
+	float finalYposition = poseFinal.position[1];
+	float initialXposition = poseInitial.position[0];
+	float initialYposition = poseInitial.position[1];
+	float dist = sqrt((pow((finalXposition - initialXposition), 2) + (pow((finalYposition - initialYposition), 2))));
+	if (dist >= intervalo) 
+		return true;
+	return false;
+}
 
 void printCarPose(const msr::airlib::Pose &pose, float speed)
 {
 	std::cout << "x=" << pose.position[0] << " y=" << pose.position[1] << " v=" << speed << std::endl;
+
+}
+
+void saveCarPose(const msr::airlib::Pose &pose, float speed)
+{
+	
+	Valores << pose.position[0] << ";" << pose.position[1] << ";" << speed << std::endl;
+	
 }
 
 void moveForwardAndBackward(msr::airlib::CarRpcLibClient &client)
@@ -55,19 +90,23 @@ int main()
 	std::cin.get();
 
     msr::airlib::CarRpcLibClient client;
-   
     try {        
 		client.confirmConnection();
 		client.reset();
 
-		while(true)
-		{ 
+		msr::airlib::Pose car_poseInitial;
+		car_poseInitial.position[0] = 0;
+		car_poseInitial.position[1] = 0;
+		msr::airlib::Pose car_poseFinal;
+		do{ 
 			auto car_state = client.getCarState();
-			auto car_pose = car_state.kinematics_estimated.pose;
+			car_poseFinal = car_state.kinematics_estimated.pose;
 			auto car_speed = car_state.speed;
-
-			std::cout << "x=" << car_pose.position[0] << " y=" << car_pose.position[1] << " v=" << car_speed << std::endl;
-		}
+			if (deveSalvarPonto(car_poseInitial, car_poseFinal, 1)) {
+				saveCarPose(car_poseInitial, car_speed);
+				car_poseInitial = car_poseFinal;
+			}
+		} while (!ChegouNoFinal(car_poseInitial));
 
 	}
     catch (rpc::rpc_error&  e) {
@@ -75,5 +114,6 @@ int main()
         std::cout << "Verifique a exceção lançada pela API do AirSim." << std::endl << msg << std::endl; std::cin.get();
     }
 
+	Valores.close();
     return 0;
 }

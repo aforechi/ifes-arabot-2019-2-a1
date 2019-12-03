@@ -9,13 +9,14 @@ STRICT_MODE_OFF
 #include "rpc/rpc_error.h"
 STRICT_MODE_ON
 
-#include "vehicles/car/api/CarRpcLibClient.hpp"
+#include "vehicles/car/api/CarRpcLibClient.hpp"                                   //Realizar as mudanças e rodar no simulador e ir salvando os arquivos
 #include "common/common_utils/FileSystem.hpp"
 #include <iostream>
 #include <chrono>
 #include <fstream>
 #include <math.h>
 #include <string>   //ADICIONEI A BIBLIOTECA
+#include <sstream>
 
 using namespace msr::airlib;
 
@@ -80,19 +81,21 @@ void moveForwardAndBackward(msr::airlib::CarRpcLibClient &client)
 	client.setCarControls(CarApiBase::CarControls());
 }
 
-void ModoManual(msr::airlib::CarRpcLibClient &simulador)
+void ModoManual(msr::airlib::CarRpcLibClient &simulador) //Salvar arquivo de pontos
 {
-	std::ofstream Valores("Valores.csv");
+
+	std::ofstream Valores("Coordenadas de 1 metro.txt");             //Onde esta Coordenadas de 1 metro para Coordenadas de 5 metros e para Coordenadas de 10 metros
+
 
 	msr::airlib::Pose car_poseInitial;
-	car_poseInitial.position[0] = 0;
+	car_poseInitial.position[0] = 0; 
 	car_poseInitial.position[1] = 0;
 	msr::airlib::Pose car_poseFinal;
 	do {
 		auto car_state = simulador.getCarState();
 		car_poseFinal = car_state.kinematics_estimated.pose;
 		auto car_speed = car_state.speed;
-		if (deveSalvarPonto(car_poseInitial, car_poseFinal, 1)) {
+		if (deveSalvarPonto(car_poseInitial, car_poseFinal, 1)) {  // Mudar aqui pra 5, e depois pra 10
 			saveCarPose(Valores, car_poseInitial, car_speed);
 			car_poseInitial = car_poseFinal;
 		}
@@ -101,73 +104,21 @@ void ModoManual(msr::airlib::CarRpcLibClient &simulador)
 	Valores.close();
 }
 
-void ModoAuto(msr::airlib::CarRpcLibClient &simulador) 
+void ModoAuto(msr::airlib::CarRpcLibClient &simulador)  // Ler arquivo de pontos
 {
 	std::ifstream Valores("Valores.csv");
-
-	//string getline()               // IMPLEMENTAR A FUNÇAO GETLINE P LER O ARQUIVO
-	
-	//getline(arq, linha);
-
-	Valores.close();
-
 }
-/*
-x = [0 0 0 0];
-dt = 1 / 20;
-baseline = 4.5; % Wheels baseline(default 4.5m)
-accelmax = 9.5; % Tesla Model S(96Km / h em 2.8s)
-steermax = 1.22; % Maximum steering(default 0.5 radians);
-*/
-
-/*void CarroAnda(const vector<float> &x,const float dt,const float baseline,const float accelmax,const float steermax, const  vector<float> &viapoints){
-
-	auto lateral_control = purepursuit(baseline, steermax, 1.0);
-
-	auto velocity_control = pidcontrol(1, 1, 0.01, dt);
-
-	last_state = x;
-	last_state = 0;
-
-	while (true) {
-		current_state = last_state;
-		current_time = last_time + dt;
-
-		if (finished(checkpoints)) {
-			break;
-		}
-
-		current_velocity = current_state(4);
-		desired_velocity = get(checkpoints, current_state);
-
-		lateral_control = update(lateral_control, current_state);
-		steering = get(lateral_control, 'steering');
-
-		velocity_control = update(velocity_control, current_time, current_velocity, desired_velocity);
-		acceleration = get(velocity_control, 'acceleration');
-
-		control_command = [acceleration, steering];
-
-		//[T, Y] = ode45(@(t, x) kinematics(car, t, x, control_command), [last_time current_time], current_state);
-		//passar os comandos para o Airsim
-		last_state = current_time;
-	}
-
-
-}*/
-
-
-
-
 
 int main()
 {
+
     std::cout << "Verifique se o arquivo Documentos\\AirSim\\settings.json " <<
 				 "está configurado para simulador de carros \"SimMode\"=\"Car\". " <<
 				 "Pressione Enter para continuar." << std::endl; 
 	std::cin.get();
 
-    msr::airlib::CarRpcLibClient simulador;
+	msr::airlib::CarRpcLibClient simulador;
+
     try {        
 		simulador.confirmConnection();
 		simulador.reset();

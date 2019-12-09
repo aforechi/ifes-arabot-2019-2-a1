@@ -14,22 +14,14 @@ STRICT_MODE_ON
 #include <iostream>
 #include <chrono>
 #include <fstream>
-#include <math.h>
-#include <string>   //ADICIONEI A BIBLIOTECA
 #include <sstream>
 
+using namespace std;
 using namespace msr::airlib;
+using msr::airlib::Pose;
 
-bool ChegouNoFinal(const msr::airlib::Pose &pose)
-{
-	if ((pose.position[0] > -5) && (pose.position[0] < 5)){ 
-		if ((pose.position[1] > 0.2) && (pose.position[1] < 1.2)) //y
-		return true;
-	}
-	return false;
 
-}
-bool deveSalvarPonto(const msr::airlib::Pose &poseInitial, const msr::airlib::Pose &poseFinal,  float intervalo)
+bool deveSalvarPonto(const msr::airlib::Pose &poseInitial, const msr::airlib::Pose &poseFinal,  float intervalo)          //Aqui
 {
 
 	float finalXposition = poseFinal.position[0];
@@ -81,21 +73,30 @@ void moveForwardAndBackward(msr::airlib::CarRpcLibClient &client)
 	client.setCarControls(CarApiBase::CarControls());
 }
 
+bool ChegouNoFinal(const msr::airlib::Pose &pose)
+{
+	if ((pose.position[0] > -5) && (pose.position[0] < 5)) {
+		if ((pose.position[1] > 0.2) && (pose.position[1] < 1.2)) //y
+			return true;
+	}
+	return false;
+
+}
+
 void ModoManual(msr::airlib::CarRpcLibClient &simulador) //Salvar arquivo de pontos
 {
 
-	std::ofstream Valores("Coordenadas de 1 metro.txt");             //Onde esta Coordenadas de 1 metro para Coordenadas de 5 metros e para Coordenadas de 10 metros
-
+	ofstream Valores("Coordenadas de 1 metro.txt");            
 
 	msr::airlib::Pose car_poseInitial;
-	car_poseInitial.position[0] = 0; 
+	car_poseInitial.position[0] = 0;
 	car_poseInitial.position[1] = 0;
 	msr::airlib::Pose car_poseFinal;
 	do {
 		auto car_state = simulador.getCarState();
 		car_poseFinal = car_state.kinematics_estimated.pose;
 		auto car_speed = car_state.speed;
-		if (deveSalvarPonto(car_poseInitial, car_poseFinal, 1)) {  // Mudar aqui pra 5, e depois pra 10
+		if (deveSalvarPonto(car_poseInitial, car_poseFinal, 1)) {
 			saveCarPose(Valores, car_poseInitial, car_speed);
 			car_poseInitial = car_poseFinal;
 		}
@@ -104,30 +105,66 @@ void ModoManual(msr::airlib::CarRpcLibClient &simulador) //Salvar arquivo de pon
 	Valores.close();
 }
 
+
 void ModoAuto(msr::airlib::CarRpcLibClient &simulador)  // Ler arquivo de pontos
 {
-	std::ifstream Valores("Valores.csv");
+	ifstream Valores("Coordenadas de 1 metro.txt");
+
+	Valores.open("Coordenadas de 1 metro.txt");
+
+	while (!Valores.eof()) {
+		string linha, coluna;
+		std::getline(Valores, linha);
+		std::istringstream colunas(linha);
+
+		while (!colunas.eof()) {
+			std::getline(colunas, coluna, ',');
+			std::cout << coluna << std::endl;
+		}
+	}
+	Valores.close();
 }
 
 int main()
 {
-
-    std::cout << "Verifique se o arquivo Documentos\\AirSim\\settings.json " <<
-				 "está configurado para simulador de carros \"SimMode\"=\"Car\". " <<
-				 "Pressione Enter para continuar." << std::endl; 
-	std::cin.get();
-
 	msr::airlib::CarRpcLibClient simulador;
 
-    try {        
+	try {
 		simulador.confirmConnection();
 		simulador.reset();
 
-		ModoManual(simulador);
+		std::cout << "Digite a opção desejada:\n";
+		std::cout << "Opçao 1-Modo Manual\nOpçao 2-Modo Automatico\n";
 
-		//ModoAuto(simulador);
+		int opçao;
+		std::cin >> opçao;
 
+		switch (opçao)
+		{
+		case 1:
+			std::cout << "Opçao 1 escolhida. " << std::endl;
+			ModoManual(simulador);
+			break;
+
+		case 2:
+			ModoAuto(simulador);
+			break;
+		}
 	}
+
+
+    /*std::cout << "Verifique se o arquivo Documentos\\AirSim\\settings.json " <<
+		//		 "está configurado para simulador de carros \"SimMode\"=\"Car\". " <<
+		//		 "Pressione Enter para continuar." << std::endl;
+	std::cin.get();
+
+
+		//ModoManual(simulador);
+
+		ModoAuto(simulador);
+	}
+	*/
+
     catch (rpc::rpc_error&  e) {
         std::string msg = e.get_error().as<std::string>();
         std::cout << "Verifique a exceção lançada pela API do AirSim." << std::endl << msg << std::endl; std::cin.get();

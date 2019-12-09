@@ -16,7 +16,7 @@ namespace msr { namespace airlib {
 // dt measured using system clock. 
 class PidController
 {
-private:
+protected:
 	float set_point_;
 	float kProportional_;
 	float kIntegral_;

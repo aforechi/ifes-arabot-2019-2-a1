@@ -99,8 +99,8 @@ int main()
 {
 	msr::airlib::CarRpcLibClient simulador;
 	Waypoints checkpoints, trajectory;
-	LateralControl lateral_control(2.3, 1, 9);
-	LongitudinalControl velocity_control(1.0, 1.0, 0.01);
+	LateralControl lateral_control(20, 6, 10);
+	LongitudinalControl velocity_control(2.0, 0.0, 0.05);
 
 	int opcao;
 	std::cout << "Favor digite a opcao de controle:\n";
